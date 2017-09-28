@@ -29,7 +29,4 @@ _start:
     mov rax, 0x22
     syscall
 
-    ; Exit the application
-    mov rax, 0x3c
-    mov rdi, 0
-    syscall
+    ; No need to do anything else since the program terminates at this point
