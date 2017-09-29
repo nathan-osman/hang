@@ -87,8 +87,6 @@ _start:
     mov rax, sys_pause
     syscall
 
-inter:
-
     ; Upon success, jump to exit
     jmp exit
 
