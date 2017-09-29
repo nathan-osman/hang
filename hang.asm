@@ -20,13 +20,110 @@
 ; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 ; SOFTWARE.
 
-GLOBAL _start
-SECTION .text
+%define sys_write        0x01
+%define sys_rt_sigaction 0x0d
+%define sys_rt_sigreturn 0x0f
+%define sys_pause        0x22
+%define sys_exit         0x3c
+
+%define SA_RESTORER 0x04000000
+
+%define SIGTERM 0x0f
+
+%define STDOUT 0x01
+
+
+; Definition of sigaction struct for sys_rt_sigaction
+struc sigaction
+    .sa_handler  resq 1
+    .sa_flags    resq 1
+    .sa_restorer resq 1
+    .sa_mask     resq 1
+endstruc
+
+
+section .data
+
+    ; Message shown when a syscall fails
+    error_msg     db  'syscall error', 0x0a
+    error_msg_len equ $ - error_msg
+
+    ; Message shown when SIGTERM is received
+    sigterm_msg     db  'SIGTERM received', 0x0a
+    sigterm_msg_len equ $ - sigterm_msg
+
+
+section .bss
+
+    act resb sigaction_size
+    val resd 1
+
+
+section .text
+global _start
 
 _start:
 
-    ; Pause until a signal is received
-    mov rax, 0x22
+    ; Initialize act
+    lea rax, [handler]
+    mov [act + sigaction.sa_handler], rax
+    mov [act + sigaction.sa_flags], dword SA_RESTORER
+    lea rax, [restorer]
+    mov [act + sigaction.sa_restorer], rax
+
+    ; Set the handler
+    mov rax, sys_rt_sigaction
+    mov rdi, SIGTERM
+    lea rsi, [act]
+    mov rdx, 0x00
+    mov r10, 0x08
     syscall
 
-    ; No need to do anything else since the program terminates at this point
+    ; Ensure the syscall succeeded
+    cmp rax, 0
+    jne error
+
+    ; Pause until a signal is received
+    mov rax, sys_pause
+    syscall
+
+inter:
+
+    ; Upon success, jump to exit
+    jmp exit
+
+error:
+
+    ; Display an error message
+    mov rax, sys_write
+    mov rdi, STDOUT
+    mov rsi, error_msg
+    mov rdx, error_msg_len
+    syscall
+
+    ; Set the return value to one
+    mov dword [val], 0x01
+
+exit:
+
+    ; Terminate the application gracefully
+    mov rax, sys_exit
+    mov rdi, [val]
+    syscall
+
+handler:
+
+    ; Display a message
+    mov rax, sys_write
+    mov rdi, STDOUT
+    mov rsi, sigterm_msg
+    mov rdx, sigterm_msg_len
+    syscall
+
+    ret
+
+restorer:
+
+    ; return from the signal handler
+    mov rax, sys_rt_sigreturn
+    syscall
