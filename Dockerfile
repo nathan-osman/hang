@@ -2,7 +2,7 @@ FROM scratch
 MAINTAINER Nathan Osman <nathan@quickmediasolutions.com>
 
 # Add the binary to the container
-ADD hang /usr/bin/hang
+ADD hang /hang
 
 # Set it as the default entrypoint
-ENTRYPOINT ["/usr/bin/hang"]
+ENTRYPOINT ["/hang"]
