@@ -53,9 +53,15 @@ section .data
     sigterm_msg_len equ $ - sigterm_msg
 
 
-section .bss
+act:
+    istruc sigaction
+    at sigaction.sa_handler,  dq handler
+    at sigaction.sa_flags,    dq SA_RESTORER
+    at sigaction.sa_restorer, dq restorer
+    iend
 
-    act resb sigaction_size
+
+section .bss
     val resd 1
 
 
@@ -63,14 +69,6 @@ section .text
 global _start
 
 _start:
-
-    ; Initialize act
-    lea rax, [handler]
-    mov [act + sigaction.sa_handler], rax
-    mov [act + sigaction.sa_flags], dword SA_RESTORER
-    lea rax, [restorer]
-    mov [act + sigaction.sa_restorer], rax
-
     ; Set the handler
     mov rax, sys_rt_sigaction
     mov rdi, SIGTERM
