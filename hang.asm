@@ -110,7 +110,6 @@ restorer:
     mov al, sys_rt_sigreturn
     syscall
 
-align 16 ; 1 byte nop 
 error:
 
     ; Display an error message
@@ -119,4 +118,5 @@ error:
     lea esi, [rbp-(act-error_msg)] ;offset to error_msg from act
     lea edx, [rax+error_msg_len]
     mov al, sys_write
+    syscall
     jmp exit
