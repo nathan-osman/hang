@@ -43,10 +43,10 @@ endstruc
 
 
 section .data
+align 16
     ; Message shown when a syscall fails
     error_msg     db  'syscall error', 0x0a
     error_msg_len equ $ - error_msg
-
     ; Message shown when SIGTERM is received
     sigterm_msg     db  'SIGTERM received', 0x0a
     sigterm_msg_len equ $ - sigterm_msg
@@ -69,6 +69,7 @@ _start:
     lea eax, [rdx+sys_rt_sigaction]
     lea edi, [rdx+SIGTERM]
     mov esi, act
+    mov ebp, esi ; save offset into data section
     lea r10d,[rdx+0x08]
     syscall
 
@@ -81,20 +82,6 @@ _start:
     xor eax, eax
     mov al, sys_pause
     syscall
-
-    ; Upon success, jump to exit
-    jmp exit
-
-error:
-
-    ; Display an error message
-    xor eax, eax
-    lea edi, [rax+STDOUT]
-    mov esi, error_msg
-    lea edx, [rax+error_msg_len]
-    mov al, sys_write
-    syscall
-
 
 exit:
 
@@ -109,7 +96,7 @@ handler:
     ; Display a message
     xor eax, eax
     lea edi, [rax+STDOUT]
-    mov esi, sigterm_msg
+    lea esi, [rbp-(act-sigterm_msg)] ; offset to sigterm_msg from act
     lea edx, [rax+sigterm_msg_len]
     mov al, sys_write
     syscall
@@ -122,3 +109,14 @@ restorer:
     xor eax, eax
     mov al, sys_rt_sigreturn
     syscall
+
+align 16 ; 1 byte nop 
+error:
+
+    ; Display an error message
+    xor eax, eax
+    lea edi, [rax+STDOUT]
+    lea esi, [rbp-(act-error_msg)] ;offset to error_msg from act
+    lea edx, [rax+error_msg_len]
+    mov al, sys_write
+    jmp exit
