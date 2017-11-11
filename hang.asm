@@ -43,7 +43,6 @@ endstruc
 
 
 section .data
-
     ; Message shown when a syscall fails
     error_msg     db  'syscall error', 0x0a
     error_msg_len equ $ - error_msg
@@ -53,6 +52,7 @@ section .data
     sigterm_msg_len equ $ - sigterm_msg
 
 
+align 16
 act:
     istruc sigaction
     at sigaction.sa_handler,  dq handler
@@ -60,29 +60,26 @@ act:
     at sigaction.sa_restorer, dq restorer
     iend
 
-
-section .bss
-    val resd 1
-
-
 section .text
 global _start
-
+align 16
 _start:
     ; Set the handler
-    mov rax, sys_rt_sigaction
-    mov rdi, SIGTERM
-    lea rsi, [act]
-    mov rdx, 0x00
-    mov r10, 0x08
+    xor edx, edx; rdx=0
+    lea eax, [rdx+sys_rt_sigaction]
+    lea edi, [rdx+SIGTERM]
+    mov esi, act
+    lea r10d,[rdx+0x08]
     syscall
 
     ; Ensure the syscall succeeded
-    cmp rax, 0
-    jne error
+    mov ebx, eax ; save syscall return
+    test eax, eax
+    jnz error
 
     ; Pause until a signal is received
-    mov rax, sys_pause
+    xor eax, eax
+    mov al, sys_pause
     syscall
 
     ; Upon success, jump to exit
@@ -91,29 +88,30 @@ _start:
 error:
 
     ; Display an error message
-    mov rax, sys_write
-    mov rdi, STDOUT
-    mov rsi, error_msg
-    mov rdx, error_msg_len
+    xor eax, eax
+    lea edi, [rax+STDOUT]
+    mov esi, error_msg
+    lea edx, [rax+error_msg_len]
+    mov al, sys_write
     syscall
 
-    ; Set the return value to one
-    mov dword [val], 0x01
 
 exit:
 
     ; Terminate the application gracefully
-    mov rax, sys_exit
-    mov rdi, [val]
+    xor eax, eax
+    mov al, sys_exit
+    mov edi, ebx ; ebx=0 -> syscall successfull
     syscall
 
 handler:
 
     ; Display a message
-    mov rax, sys_write
-    mov rdi, STDOUT
-    mov rsi, sigterm_msg
-    mov rdx, sigterm_msg_len
+    xor eax, eax
+    lea edi, [rax+STDOUT]
+    mov esi, sigterm_msg
+    lea edx, [rax+sigterm_msg_len]
+    mov al, sys_write
     syscall
 
     ret
@@ -121,5 +119,6 @@ handler:
 restorer:
 
     ; return from the signal handler
-    mov rax, sys_rt_sigreturn
+    xor eax, eax
+    mov al, sys_rt_sigreturn
     syscall
