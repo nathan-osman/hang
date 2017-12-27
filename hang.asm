@@ -99,7 +99,6 @@ handler:
     lea edx, [rax+sigterm_msg_len]
     mov al, sys_write
     mov edi, eax ; set edi=1 STDOUT
-;    mov al, sys_write 
     syscall
 
     ret
