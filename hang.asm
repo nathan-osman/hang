@@ -19,7 +19,7 @@
 ; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 ; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 ; SOFTWARE.
-
+%use smartalign
 %define sys_write        0x01
 %define sys_rt_sigaction 0x0d
 %define sys_rt_sigreturn 0x0f
@@ -95,10 +95,11 @@ handler:
 
     ; Display a message
     xor eax, eax
-    lea edi, [rax+STDOUT]
     lea esi, [rbp-(act-sigterm_msg)] ; offset to sigterm_msg from act
     lea edx, [rax+sigterm_msg_len]
     mov al, sys_write
+    mov edi, eax ; set edi=1 STDOUT
+;    mov al, sys_write 
     syscall
 
     ret
@@ -110,13 +111,14 @@ restorer:
     mov al, sys_rt_sigreturn
     syscall
 
+    align 16
 error:
 
     ; Display an error message
     xor eax, eax
-    lea edi, [rax+STDOUT]
     lea esi, [rbp-(act-error_msg)] ;offset to error_msg from act
     lea edx, [rax+error_msg_len]
     mov al, sys_write
+    mov edi, eax; edi=1 STDOUT
     syscall
     jmp exit
