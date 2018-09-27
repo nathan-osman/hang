@@ -19,7 +19,9 @@
 ; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 ; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 ; SOFTWARE.
+
 %use smartalign
+
 %define sys_write        0x01
 %define sys_rt_sigaction 0x0d
 %define sys_rt_sigreturn 0x0f
@@ -44,9 +46,11 @@ endstruc
 
 section .data
 align 16
+
     ; Message shown when a syscall fails
     error_msg     db  'syscall error', 0x0a
     error_msg_len equ $ - error_msg
+    
     ; Message shown when SIGTERM is received
     sigterm_msg     db  'SIGTERM received', 0x0a
     sigterm_msg_len equ $ - sigterm_msg
@@ -60,10 +64,13 @@ act:
     at sigaction.sa_restorer, dq restorer
     iend
 
+
 section .text
 global _start
 align 16
+
 _start:
+
     ; Set the handler
     xor edx, edx; rdx=0
     lea eax, [rdx+sys_rt_sigaction]
@@ -110,7 +117,6 @@ restorer:
     mov al, sys_rt_sigreturn
     syscall
 
-    align 16
 error:
 
     ; Display an error message
